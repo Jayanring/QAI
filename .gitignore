@@ -1,0 +1,7 @@
+/target
+/files
+/storage
+Cargo.lock
+api_key
+demo*
+.env

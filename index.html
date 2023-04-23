@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brain Query Service</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .input-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .button-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        #uploadProgress {
+            width: 100%;
+            height: 10px;
+            background-color: #f3f3f3;
+            position: relative;
+        }
+
+        #uploadProgressBar {
+            height: 10px;
+            background-color: #4caf50;
+            position: absolute;
+            width: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Brain Query Service</h1>
+    <div class="input-container">
+        <label for="queryInput">Enter your query:</label>
+        <input type="text" id="queryInput">
+        <button onclick="sendQuery()">Submit Query</button>
+    </div>
+    <div class="input-container">
+        <label for="fileInput">Upload your file:</label>
+        <input type="file" id="fileInput">
+        <button onclick="sendFile()">Submit File</button>
+    </div>
+    <div id="uploadProgress">
+        <div id="uploadProgressBar"></div>
+    </div>
+    <div class="button-container">
+        <button onclick="getList()">Get List</button>
+    </div>
+    <p id="result"></p>
+
+    <script>
+        // sendQuery and sendLearn functions
+
+        async function sendFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (file) {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch('upload', {
+                    method: 'POST',
+                    body: formData,
+                    onUploadProgress: (progressEvent) => {
+                        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                        document.getElementById('uploadProgressBar').style.width = percentCompleted + '%';
+                    }
+                });
+
+                const data = await response.text();
+                document.getElementById('result').innerText = `File upload result: ${data}`;
+            } else {
+                document.getElementById('result').innerText = 'Please select a file to upload.';
+            }
+        }
+    </script>
+
+    <script>
+        async function sendQuery() {
+            const queryInput = document.getElementById('queryInput').value;
+            const response = await fetch('query', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ input_text: queryInput })
+            });
+            const data = await response.text();
+            document.getElementById('result').innerText = `${data}`;
+        }
+    </script>
+
+    <script>
+        async function getList() {
+            const response = await fetch('get_list', {
+                method: 'GET'
+            });
+            const data = await response.text();
+            document.getElementById('result').innerText = `List: ${data}`;
+        }
+    </script>
+</body>
+
+</html>
