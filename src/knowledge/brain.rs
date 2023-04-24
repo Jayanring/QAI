@@ -1,4 +1,4 @@
-use super::cosine_similarity;
+use super::matching::{match_final, match_top_n};
 use super::storage::Storage;
 use crate::chunk_file::UnLearnedKnowledge;
 use crate::{CHUNK_HEAD, CHUNK_TAIL};
@@ -29,7 +29,7 @@ pub struct Knowledge {
 pub(crate) struct Brain {
     pub _metadata: BrainMetadata,
     openai_client: Client,
-    storage: Storage,
+    pub storage: Storage,
     pub knowledge: Arc<RwLock<Knowledge>>,
     semaphore: Arc<Semaphore>,
 }
@@ -86,7 +86,7 @@ impl Brain {
             .store(unlearned_knowledge, vectors.clone())
             .await?;
         let elapsed = start.elapsed().as_secs_f64();
-        info!("persist {} spends {}s", file_name, elapsed);
+        info!("index: {} persist {} spends {}s", index, file_name, elapsed);
         {
             let mut write = self.knowledge.write().await;
             write.vectors.insert(index, vectors);
@@ -104,6 +104,7 @@ impl Brain {
             .model("text-embedding-ada-002")
             .input(query.clone())
             .build()?;
+        info!("request embedding, wait for response...");
         let vector = self.openai_client.embeddings().create(request).await?.data[0]
             .embedding
             .clone();
@@ -112,7 +113,7 @@ impl Brain {
 
         // match
         let start = Instant::now();
-        let matched = self.match_vector(&vector).await?;
+        let matched = self.retrieve(&vector, &query).await?;
         let uploader = matched.uploader;
         let file_name = matched.file_name;
         let context = matched
@@ -159,37 +160,23 @@ impl Brain {
             + &addition_info)
     }
 
-    async fn match_vector(&self, vector: &[f32]) -> Result<UnLearnedKnowledge> {
-        let mut matched_index = 0usize;
-        let mut matched_vector_index = 0usize;
-        let mut matched_similarity = 0.0f32;
-        let mut matched_len = 0usize;
-        {
-            let read = self.knowledge.read().await;
-            read.vectors.iter().for_each(|(&index, vectors)| {
-                let len = vectors.len();
-                vectors.iter().enumerate().for_each(|(vector_index, v)| {
-                    let similarity = cosine_similarity(vector, v);
-                    if similarity > matched_similarity {
-                        matched_index = index;
-                        matched_vector_index = vector_index;
-                        matched_similarity = similarity;
-                        matched_len = len;
-                    }
-                });
-            });
+    async fn retrieve(&self, vector: &[f32], query: &str) -> Result<UnLearnedKnowledge> {
+        let top_n = {
+            let map = &self.knowledge.read().await.vectors;
+            match_top_n(map, vector)
         };
+        let matched = match_final(top_n, query, self.storage.operator.clone()).await?;
 
         let start_index = {
-            let pre = (*CHUNK_HEAD).min(matched_vector_index);
-            matched_vector_index - pre
+            let pre = (*CHUNK_HEAD).min(matched.vector_index);
+            matched.vector_index - pre
         };
-        let end_index = (matched_vector_index + *CHUNK_TAIL).min(matched_len);
+        let end_index = (matched.vector_index + *CHUNK_TAIL).min(matched.len);
         let vector_indexs = (start_index..=end_index).collect::<Vec<_>>();
 
         // index 0 records matched page
-        let matched_relative_index = matched_vector_index - start_index;
-        let mut unlearned_knowledge = self.storage.load(matched_index, vector_indexs).await?;
+        let matched_relative_index = matched.vector_index - start_index;
+        let mut unlearned_knowledge = self.storage.load(matched.index, vector_indexs).await?;
         let matched_page = unlearned_knowledge.chunks[matched_relative_index].page;
         unlearned_knowledge.chunks[0].page = matched_page;
         Ok(unlearned_knowledge)

@@ -5,9 +5,11 @@ use anyhow::Result;
 use chunk_file::pdf::Pdf;
 use chunk_file::FileType;
 use dotenv::dotenv;
+use env_logger::Builder;
 use futures_util::stream::TryStreamExt;
 use knowledge::brain::Brain;
 use lazy_static::lazy_static;
+use log::LevelFilter;
 use pdfium_render::prelude::Pdfium;
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
@@ -51,7 +53,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     dotenv().ok();
 
     // init logger
-    env_logger::init();
+    let log_level = std::env::var("RUST_LOG").unwrap();
+    if log_level == "debug" {
+        Builder::new()
+            .filter(None, LevelFilter::Info)
+            .filter(Some("qa::knowledge"), LevelFilter::Debug)
+            .init();
+    } else {
+        env_logger::init();
+    }
 
     // check dependencies
     Pdfium::bind_to_library("./libpdfium.so")?;

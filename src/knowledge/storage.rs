@@ -32,7 +32,7 @@ use opendal::Operator;
 
 #[derive(Clone)]
 pub struct Storage {
-    operator: Operator,
+    pub operator: Operator,
 }
 
 impl Storage {
@@ -98,6 +98,7 @@ impl Storage {
                     chunk.page.to_be_bytes().to_vec(),
                 )
                 .await?;
+            debug!("store chunk: j: {}, content: {}", j, chunk.content);
         }
         self.operator
             .write("count", (index + 1).to_be_bytes().to_vec())
@@ -133,6 +134,7 @@ impl Storage {
                     .read(&(index.to_string() + "/" + &j.to_string() + "/page"))
                     .await?,
             );
+            debug!("load chunk: j: {}, content: {}", j, content);
             let chunk = UnLearnedChunk { content, page };
             chunks.push(chunk);
         }
@@ -193,7 +195,7 @@ fn usize_decode(data: &[u8]) -> usize {
     usize::from_be_bytes(data.try_into().unwrap())
 }
 
-fn string_decode(bytes: &[u8]) -> String {
+pub fn string_decode(bytes: &[u8]) -> String {
     let s = String::from_utf8_lossy(bytes);
     s.to_string()
 }

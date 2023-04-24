@@ -1,8 +1,7 @@
-use std::{fmt::Display, path::PathBuf};
+use super::{chunk, UnLearnedKnowledge};
 use anyhow::Result;
 use pdfium_render::prelude::Pdfium;
-use super::{UnLearnedKnowledge, chunk};
-
+use std::{fmt::Display, path::PathBuf};
 
 #[derive(PartialEq, Clone)]
 pub struct Pdf {
