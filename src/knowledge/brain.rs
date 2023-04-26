@@ -157,17 +157,25 @@ impl Brain {
 
         tx.send(Message::text(":\n")).await?;
         debug!("query: {} replying...", query);
+        let mut is_failed = Vec::new();
         while let Some(res) = stream.next().await {
             if let Ok(response) = res {
                 for c in response.choices.iter() {
                     if let Some(content) = &c.delta.content {
                         let _ = tx.send(Message::text(content)).await;
+                        if is_failed.len() < 6 {
+                            is_failed.push(content.to_string());
+                        }
                     }
                 }
             }
         }
-        let addition_info = format!("（详见 {} ，第 {} 页）", file_name, page,);
-        tx.send(Message::text("\n\n".to_string() + &addition_info))
+        let addition_info = if is_failed.contains(&"抱歉".to_string()) {
+            format!("（详见 {} ，第 {} 页）", file_name, page,)
+        } else {
+            "（匹配失败，请检查问题或文档）".to_string()
+        };
+        tx.send(Message::text("\n".to_string() + &addition_info))
             .await?;
         let elapsed = start.elapsed().as_secs_f64();
         info!("query openai: {} spends {}s", query, elapsed);
