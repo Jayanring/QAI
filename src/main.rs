@@ -6,6 +6,7 @@ use chunk_file::pdf::Pdf;
 use chunk_file::FileType;
 use dotenv::dotenv;
 use env_logger::Builder;
+use futures::StreamExt;
 use futures_util::stream::TryStreamExt;
 use knowledge::brain::Brain;
 use lazy_static::lazy_static;
@@ -22,7 +23,7 @@ use tokio::{
     fs,
     sync::mpsc::{channel, Receiver, Sender},
 };
-use warp::{multipart::FormData, Buf, Filter, Rejection, Reply};
+use warp::{multipart::FormData, ws::WebSocket, Buf, Filter, Rejection, Reply};
 
 #[macro_use]
 extern crate log;
@@ -44,7 +45,7 @@ lazy_static! {
 
 #[derive(Deserialize, Serialize)]
 struct QueryRequest {
-    input_text: String,
+    query: String,
 }
 
 #[tokio::main]
@@ -104,11 +105,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .and(warp::any().map(move || file_type_sender.clone()))
         .and_then(handle_upload);
 
-    let query_route = warp::path("query")
-        .and(warp::post())
-        .and(warp::body::json())
+    let query_route = warp::path("ws")
+        .and(warp::ws())
+        .and(warp::query::<QueryRequest>())
         .and(warp::any().map(move || Arc::clone(&brain_for_query)))
-        .and_then(handle_query);
+        .map(|ws: warp::ws::Ws, query: QueryRequest, brain| {
+            ws.on_upgrade(move |socket| handle_query(query, brain, socket))
+        });
 
     let get_list_route = warp::path("get_list")
         .and(warp::get())
@@ -137,18 +140,14 @@ async fn handle_get_list(brain: Arc<Brain>) -> Result<impl Reply, Rejection> {
     Ok(warp::reply::html(result))
 }
 
-async fn handle_query(
-    query_request: QueryRequest,
-    brain: Arc<Brain>,
-) -> Result<impl Reply, Rejection> {
-    info!("get query request: {:?}", query_request.input_text.clone());
-    let result = {
-        brain.query(query_request.input_text).await.map_err(|e| {
-            warn!("handle query request failed: {}", e);
-            warp::reject()
-        })?
+async fn handle_query(query_request: QueryRequest, brain: Arc<Brain>, ws: WebSocket) {
+    info!("get query request: {:?}", query_request.query.clone());
+
+    let (mut tx, _) = ws.split();
+
+    if let Err(e) = brain.query(query_request.query, &mut tx).await {
+        warn!("handle query request failed: {}", e);
     };
-    Ok(warp::reply::html(result))
 }
 
 async fn handle_upload(

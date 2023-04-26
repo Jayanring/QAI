@@ -4,70 +4,252 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Brain Query Service</title>
+    <title>溪塔AI知识库</title>
     <style>
         body {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            height: 250px;
             margin: 0;
+            background-color: #212121;
+            font-family: 'Courier New', monospace;
+            color: #00ff00;
         }
 
-        .input-container {
+        .section {
             display: flex;
+            flex-direction: column;
             align-items: center;
             gap: 10px;
-        }
-
-        .button-container {
-            display: flex;
-            gap: 10px;
-        }
-
-        #uploadProgress {
-            width: 100%;
-            height: 10px;
-            background-color: #f3f3f3;
-            position: relative;
-        }
-
-        #uploadProgressBar {
-            height: 10px;
-            background-color: #4caf50;
             position: absolute;
-            width: 0;
+        }
+
+        .query-section {
+            top: 20%;
+            width: 50%;
+            height: 70%;
+        }
+
+        .query-container {
+            display: flex;
+            align-items: stretch;
+            position: relative;
+            top: 0%;
+            width: 90%;
+            height: 5%;
+        }
+
+        #queryInput {
+            width: 100%;
+            height: 100%;
+            resize: none;
+            background-color: #303030;
+            color: #00ff00;
+            border: none;
+            overflow: auto;
+            border-radius: 10px;
+        }
+
+        .query-output-container {
+            display: flex;
+            align-items: stretch;
+            position: absolute;
+            top: 10%;
+            width: 90%;
+            height: 100%;
+        }
+
+        #queryOutput {
+            width: 100%;
+            height: 95%;
+            resize: none;
+            background-color: #303030;
+            color: #00ff00;
+            border: none;
+            overflow: auto;
+            margin-left: auto;
+            margin-right: auto;
+            border-radius: 10px;
+        }
+
+        .file-section {
+            top: 20%;
+            left: 1%;
+            width: 25%;
+            height: 10%;
+        }
+
+        #fileOutput {
+            width: 90%;
+            height: 100%;
+            resize: none;
+            background-color: #303030;
+            color: #00ff00;
+            border: none;
+            overflow: auto;
+            margin-left: auto;
+            margin-right: auto;
+            border-radius: 10px;
+        }
+
+        .list-section {
+            top: 32%;
+            left: 1%;
+            width: 25%;
+            height: 64%;
+        }
+
+        #listOutput {
+            width: 90%;
+            height: 100%;
+            min-height: 50px;
+            resize: none;
+            background-color: #303030;
+            color: #00ff00;
+            border: none;
+            overflow: auto;
+            margin-left: auto;
+            margin-right: auto;
+            border-radius: 10px;
+        }
+
+        .instruction-section {
+            top: 30%;
+            right: 2%;
+            width: 22%;
+            height: 64%;
+            border: none;
+            overflow: auto;
+            margin-left: auto;
+            margin-right: auto;
+            border-radius: 10px;
+            background-color: #303030;
+            color: #00ff00;
+            padding: 10px;
+            position: absolute;
+            white-space: pre-wrap;
+            resize: none;
+        }
+
+        pre {
+            text-align: left;
+            white-space: pre-wrap;
+        }
+
+        button {
+            background-color: #00ff00;
+            border: none;
+            color: #212121;
+            padding: 7px 7px;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .button-submit {
+            background-color: #00ff00;
+            border: none;
+            color: #212121;
+            font-family: 'Georgia', serif;
+            cursor: pointer;
+            width: 10%;
+            height: 150%;
+            flex-shrink: 0;
+            margin-left: 5px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+
+        textarea {
+            background-color: #303030;
+            border: none;
+            color: #88ff00;
+            font-size: 15px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .textarea-input {
+            font-size: 20px;
+        }
+
+        .header {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            height: 20%;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2vw;
         }
     </style>
 </head>
 
-<body>
-    <h1>Brain Query Service</h1>
-    <div class="input-container">
-        <label for="queryInput">Enter your query:</label>
-        <input type="text" id="queryInput">
-        <button onclick="sendQuery()">Submit Query</button>
+<body onload="getList()">
+    <div class="header">
+        溪塔AI知识库(测试)<br>Rivtower AI Knowledge Base(test)
     </div>
-    <div class="input-container">
-        <label for="fileInput">Upload your file:</label>
-        <input type="file" id="fileInput">
-        <button onclick="sendFile()">Submit File</button>
+    <div class="section file-section">
+        <div>
+            <label for="fileInput">上传文件：</label>
+            <input type="file" id="fileInput">
+            <button onclick="sendFile()">上传</button>
+        </div>
+        <textarea id="fileOutput" readonly></textarea>
     </div>
-    <div id="uploadProgress">
-        <div id="uploadProgressBar"></div>
+    <div class="section query-section">
+        <div class="query-container">
+            <label for="queryInput"></label>
+            <textarea class="textarea-input" id="queryInput" rows="3" cols="40" placeholder="输入问题"></textarea>
+            <button class="button-submit" onclick="sendQuery()">提交</button>
+        </div>
+        <div class="query-output-container">
+            <textarea id="queryOutput" readonly></textarea>
+        </div>
     </div>
-    <div class="button-container">
-        <button onclick="getList()">Get List</button>
+    <div class="section list-section">
+        <button onclick="getList()">刷新</button>
+        <textarea id="listOutput" readonly></textarea>
     </div>
-    <p id="result"></p>
+    <div class="instruction-section">
+        <pre>
+说明：
+1. 测试版只支持pdf
+2. 有时响应慢，请耐心等待
+3. 有时会卡住，等待超过一分钟仍未开始回答请重试
+4. 语义：语言的含义，如“国王”和“皇帝”虽然文本没有重复，但语义相似度很高
+5. 有其他问题请反馈给我@wjj
+
+特性：
+1. 支持多文档匹配，效果待进一步测试
+2. 语义相似度+文本相似度匹配算法，提高回答准确性
+3. 跨语言匹配，如用中文提问英文文档，效果待进一步测试
+4. 实时显示回答
+
+原理：
+    根据问题匹配知识库中最相关的一部分连续文本（约600字），期待其中包含解答问题的答案，将文本与问题拼接后输入gpt-3.5-turbo模型。
+
+使用技巧：
+1. 问题要聚焦某一点，比如“XXX是什么”。只对匹配到的文本有理解能力，没有全局理解能力，比如不能“结合全文总结XXX”
+2. 问题中尽量重复目标答案的语义和文本，能够提高匹配准确性
+3. 上传的文档中各部分主旨明确，不要省略关键信息
+        <pre>
+    </div>
 
     <script>
-        // sendQuery and sendLearn functions
-
         async function sendFile() {
             const fileInput = document.getElementById('fileInput');
             const file = fileInput.files[0];
+            const fileOutput = document.getElementById('fileOutput');
 
             if (file) {
                 const formData = new FormData();
@@ -76,42 +258,63 @@
                 const response = await fetch('upload', {
                     method: 'POST',
                     body: formData,
-                    onUploadProgress: (progressEvent) => {
-                        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                        document.getElementById('uploadProgressBar').style.width = percentCompleted + '%';
-                    }
                 });
 
                 const data = await response.text();
-                document.getElementById('result').innerText = `File upload result: ${data}`;
+                fileOutput.style.display = 'block';
+                fileOutput.value = `File upload result: ${data}`;
             } else {
-                document.getElementById('result').innerText = 'Please select a file to upload.';
+                fileOutput.style.display = 'block';
+                fileOutput.value = 'Please select a file to upload.';
             }
         }
     </script>
 
     <script>
+        let socket;
         async function sendQuery() {
-            const queryInput = document.getElementById('queryInput').value;
-            const response = await fetch('query', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ input_text: queryInput })
-            });
-            const data = await response.text();
-            document.getElementById('result').innerText = `${data}`;
+            const queryInput = document.getElementById("queryInput").value;
+            const queryOutput = document.getElementById("queryOutput");
+
+            if (socket) {
+                socket.close();
+            }
+
+            if (queryOutput.value === "") {
+                queryOutput.value = `Query:\n${queryInput}`;
+            } else {
+                queryOutput.value += `\n\n\Query:\n${queryInput}`;
+            }
+            queryOutput.scrollTop = queryOutput.scrollHeight;
+    
+            socket = new WebSocket(`ws://localhost:8080/ws?query=${encodeURIComponent(queryInput)}`);
+
+            queryOutput.value += `\nAnswer`;
+
+            socket.onmessage = (event) => {
+                queryOutput.value += event.data;
+                queryOutput.scrollTop = queryOutput.scrollHeight;
+                queryOutput.style.display = "block";
+            };
+    
+            socket.onclose = (event) => {
+                console.log("WebSocket is closed:", event);
+            };
+    
+            socket.onerror = (error) => {
+                console.log("WebSocket error:", error);
+            };
         }
     </script>
-
+    
     <script>
         async function getList() {
             const response = await fetch('get_list', {
                 method: 'GET'
             });
             const data = await response.text();
-            document.getElementById('result').innerText = `List: ${data}`;
+            const listOutput = document.getElementById('listOutput');
+            listOutput.value = `List: ${data}`;
         }
     </script>
 </body>

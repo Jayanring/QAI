@@ -7,11 +7,14 @@ use async_openai::types::{
     ChatCompletionRequestMessageArgs, CreateChatCompletionRequestArgs, Role,
 };
 use async_openai::{types::CreateEmbeddingRequestArgs, Client};
+use futures::stream::SplitSink;
+use futures::{SinkExt, StreamExt};
 use std::collections::HashMap;
 use std::error::Error;
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::{RwLock, Semaphore};
+use warp::ws::{Message, WebSocket};
 
 #[derive(Clone)]
 pub struct BrainMetadata {
@@ -97,7 +100,11 @@ impl Brain {
         Ok(())
     }
 
-    pub async fn query(&self, query: String) -> Result<String, Box<dyn Error>> {
+    pub async fn query(
+        &self,
+        query: String,
+        tx: &mut SplitSink<WebSocket, Message>,
+    ) -> Result<(), Box<dyn Error>> {
         // embedding query
         let start = Instant::now();
         let request = CreateEmbeddingRequestArgs::default()
@@ -114,7 +121,7 @@ impl Brain {
         // match
         let start = Instant::now();
         let matched = self.retrieve(&vector, &query).await?;
-        let uploader = matched.uploader;
+        let _uploader = matched.uploader;
         let file_name = matched.file_name;
         let context = matched
             .chunks
@@ -146,18 +153,26 @@ impl Brain {
             ])
             .build()?;
         info!("send query to openai, wait for response...");
-        let response = self.openai_client.chat().create(request).await?;
-        let addition_info = format!(
-            "（详见 {} ，第 {} 页，上传者 {}）",
-            file_name, page, uploader,
-        );
+        let mut stream = self.openai_client.chat().create_stream(request).await?;
+
+        tx.send(Message::text(":\n")).await?;
+        debug!("query: {} replying...", query);
+        while let Some(res) = stream.next().await {
+            if let Ok(response) = res {
+                for c in response.choices.iter() {
+                    if let Some(content) = &c.delta.content {
+                        let _ = tx.send(Message::text(content)).await;
+                    }
+                }
+            }
+        }
+        let addition_info = format!("（详见 {} ，第 {} 页）", file_name, page,);
+        tx.send(Message::text("\n\n".to_string() + &addition_info))
+            .await?;
         let elapsed = start.elapsed().as_secs_f64();
         info!("query openai: {} spends {}s", query, elapsed);
 
-        Ok("\n".to_string()
-            + &response.choices[0].message.content.clone()
-            + "\n\n"
-            + &addition_info)
+        Ok(())
     }
 
     async fn retrieve(&self, vector: &[f32], query: &str) -> Result<UnLearnedKnowledge> {
