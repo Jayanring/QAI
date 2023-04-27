@@ -157,23 +157,25 @@ impl Brain {
 
         tx.send(Message::text(":\n")).await?;
         debug!("query: {} replying...", query);
-        let mut is_failed = Vec::new();
+        let mut is_failed = String::new();
         while let Some(res) = stream.next().await {
             if let Ok(response) = res {
                 for c in response.choices.iter() {
                     if let Some(content) = &c.delta.content {
                         let _ = tx.send(Message::text(content)).await;
-                        if is_failed.len() < 6 {
-                            is_failed.push(content.to_string());
+                        if is_failed.len() < 18 {
+                            is_failed += content;
                         }
                     }
                 }
             }
         }
         let addition_info = if is_failed.contains(&"抱歉".to_string()) {
-            format!("（详见 {} ，第 {} 页）", file_name, page,)
-        } else {
             "（匹配失败，请检查问题或文档）".to_string()
+        } else if file_name.ends_with(".pdf") {
+            format!("（详见 {} ，第 {} 页）", file_name, page)
+        } else {
+            format!("（详见 {} ，第 {} 段）", file_name, page)
         };
         tx.send(Message::text("\n".to_string() + &addition_info))
             .await?;
@@ -194,8 +196,8 @@ impl Brain {
             let pre = (*CHUNK_HEAD).min(matched.vector_index);
             matched.vector_index - pre
         };
-        let end_index = (matched.vector_index + *CHUNK_TAIL).min(matched.len);
-        let vector_indexs = (start_index..=end_index).collect::<Vec<_>>();
+        let end_index = (matched.vector_index + *CHUNK_TAIL + 1).min(matched.len);
+        let vector_indexs = (start_index..end_index).collect::<Vec<_>>();
 
         // index 0 records matched page
         let matched_relative_index = matched.vector_index - start_index;

@@ -98,7 +98,10 @@ impl Storage {
                     chunk.page.to_be_bytes().to_vec(),
                 )
                 .await?;
-            debug!("store chunk: j: {}, content: {}", j, chunk.content);
+            debug!(
+                "store chunk: j: {}, content: {}, page: {}",
+                j, chunk.content, chunk.page
+            );
         }
         self.operator
             .write("count", (index + 1).to_be_bytes().to_vec())

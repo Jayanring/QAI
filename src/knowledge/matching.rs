@@ -38,7 +38,7 @@ impl Eq for Matched {}
 pub fn match_top_n(map: &HashMap<usize, Vec<Vec<f32>>>, vector: &[f32]) -> Vec<Matched> {
     let mut top_n = Vec::new();
     let total_len: usize = map.values().map(|v| v.len()).sum();
-    let n = total_len / 6;
+    let n = (total_len / 6).max(1);
 
     for (index, vec_list) in map.iter() {
         for (vector_index, vec) in vec_list.iter().enumerate() {

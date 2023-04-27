@@ -1,9 +1,9 @@
 mod chunk_file;
 mod knowledge;
 
+use crate::chunk_file::match_file;
 use anyhow::Result;
-use chunk_file::pdf::Pdf;
-use chunk_file::FileType;
+use chunk_file::UnlearnedFile;
 use dotenv::dotenv;
 use env_logger::Builder;
 use futures::StreamExt;
@@ -73,14 +73,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     cl100k_base()?;
     info!("dependencies check succeed");
 
-    let (file_type_sender, file_type_reciever) = channel(1);
+    let (file_sender, file_receiver) = channel(1);
 
     let brain = Arc::new(Brain::new("test".to_string(), "wjj".to_string()).await);
     let brain_for_query = Arc::clone(&brain);
     let brain_for_index = Arc::clone(&brain);
 
     tokio::spawn(async move {
-        indexer(file_type_reciever, brain_for_index).await;
+        indexer(file_receiver, brain_for_index).await;
     });
 
     // if a file is uploaded but not indexed, re-index it
@@ -92,8 +92,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .collect::<Vec<String>>();
     for file_name in unindexed {
         let file_path = PathBuf::from("./files").join(file_name.clone());
-        let file_type = match_file_type(file_name.clone(), "".to_string(), file_path);
-        let _ = file_type_sender.send(file_type).await;
+        let file = match_file(file_name.clone(), "".to_string(), file_path);
+        let _ = file_sender.send(file).await;
         info!("send re-index to indexer: {}", file_name);
     }
 
@@ -102,7 +102,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let file_upload_route = warp::path("upload")
         .and(warp::post())
         .and(warp::multipart::form())
-        .and(warp::any().map(move || file_type_sender.clone()))
+        .and(warp::any().map(move || file_sender.clone()))
         .and_then(handle_upload);
 
     let query_route = warp::path("ws")
@@ -152,7 +152,7 @@ async fn handle_query(query_request: QueryRequest, brain: Arc<Brain>, ws: WebSoc
 
 async fn handle_upload(
     form: FormData,
-    file_type_sender: Sender<FileType>,
+    file_sender: Sender<UnlearnedFile>,
 ) -> Result<impl warp::Reply, Infallible> {
     let mut stream = form.into_stream();
 
@@ -164,45 +164,31 @@ async fn handle_upload(
                 info!("get upload request: {} already uploaded", file_name);
                 return Ok(warp::reply::html("File already uploaded"));
             }
-            // check if supported
-            let file_type = match_file_type(file_name.clone(), "".to_string(), file_path.clone());
-            if file_type == FileType::NotSupported {
-                info!(
-                    "get upload request: {} type not supported",
-                    file_name.clone()
-                );
-                return Ok(warp::reply::html("File type not supported"));
-            }
+            // parse file type
+            let file = match_file(file_name.clone(), "".to_string(), file_path.clone());
+
             // write file
-            let mut file = fs::File::create(file_path.clone()).await.unwrap(); // should not panic
+            let mut fs = fs::File::create(file_path.clone()).await.unwrap(); // should not panic
             let mut part_stream = part.stream();
             while let Ok(Some(chunk)) = part_stream.try_next().await {
-                if let Err(e) = file.write_all(chunk.chunk()).await {
+                if let Err(e) = fs.write_all(chunk.chunk()).await {
                     error!("write {} failed: {}", file_name, e);
                     return Ok(warp::reply::html("Write file failed"));
                 }
             }
             info!("get upload request: {} uploaded", file_name);
             // send to indexer
-            let _ = file_type_sender.send(file_type).await;
+            let _ = file_sender.send(file).await;
         }
     }
     Ok(warp::reply::html("File uploaded successfully. Indexing..."))
 }
 
-fn match_file_type(file_name: String, uploader: String, path: PathBuf) -> FileType {
-    if file_name.ends_with(".pdf") {
-        FileType::Pdf(Pdf::new(file_name, uploader, path))
-    } else {
-        FileType::NotSupported
-    }
-}
-
-async fn indexer(mut file_type_reciever: Receiver<FileType>, brain: Arc<Brain>) {
+async fn indexer(mut file_receiver: Receiver<UnlearnedFile>, brain: Arc<Brain>) {
     info!("indexer start");
-    while let Some(file_type) = file_type_reciever.recv().await {
-        info!("indexer recieve file: {}", file_type);
-        match file_type.clone().into() {
+    while let Some(file) = file_receiver.recv().await {
+        info!("indexer recieve file: {}", file);
+        match file.clone().into() {
             Ok(unlearned) => {
                 let file_name = unlearned.file_name.clone();
                 match brain.index(unlearned).await {
@@ -215,7 +201,7 @@ async fn indexer(mut file_type_reciever: Receiver<FileType>, brain: Arc<Brain>) 
                 }
             }
             Err(e) => {
-                warn!("indexer parse file: {} failed: {}", file_type, e);
+                warn!("indexer parse file: {} failed: {}", file, e);
             }
         }
     }

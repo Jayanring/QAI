@@ -1,24 +1,61 @@
+pub mod normal;
 pub mod pdf;
 
-use self::pdf::Pdf;
 use crate::CHUNK_TOKENS;
 use anyhow::Result;
 use async_openai::types::EmbeddingInput;
-use std::fmt::Display;
+use std::{fmt::Display, path::PathBuf};
 use tiktoken_rs::cl100k_base;
+
+use self::{normal::parse_normal, pdf::parse_pdf};
 
 #[derive(PartialEq, Clone)]
 pub enum FileType {
-    Pdf(Pdf),
-    NotSupported,
+    Pdf,
+    Normal,
 }
 
 impl Display for FileType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FileType::Pdf(pdf) => write!(f, "{}", pdf),
-            FileType::NotSupported => write!(f, "Not supported file type"),
+            FileType::Pdf => write!(f, "PDF"),
+            FileType::Normal => write!(f, "NORMAL"),
         }
+    }
+}
+
+#[derive(Clone)]
+pub struct UnlearnedFile {
+    pub file_name: String,
+    pub uploader: String,
+    pub path: PathBuf,
+    pub file_type: FileType,
+}
+
+impl Display for UnlearnedFile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} {{ file_name: {}, uploader: {}, path: {} }}",
+            self.file_type,
+            self.file_name,
+            self.uploader,
+            self.path.display()
+        )
+    }
+}
+
+pub fn match_file(file_name: String, uploader: String, path: PathBuf) -> UnlearnedFile {
+    let file_type = if file_name.ends_with(".pdf") {
+        FileType::Pdf
+    } else {
+        FileType::Normal
+    };
+    UnlearnedFile {
+        file_name,
+        uploader,
+        path,
+        file_type,
     }
 }
 
@@ -35,11 +72,11 @@ pub struct UnLearnedKnowledge {
     pub chunks: Vec<UnLearnedChunk>,
 }
 
-impl From<FileType> for Result<UnLearnedKnowledge> {
-    fn from(file_type: FileType) -> Result<UnLearnedKnowledge> {
-        match file_type {
-            FileType::Pdf(pdf) => pdf.into(),
-            FileType::NotSupported => unimplemented!("Not supported file type"),
+impl From<UnlearnedFile> for Result<UnLearnedKnowledge> {
+    fn from(file: UnlearnedFile) -> Result<UnLearnedKnowledge> {
+        match file.file_type {
+            FileType::Pdf => parse_pdf(file),
+            FileType::Normal => parse_normal(file),
         }
     }
 }
