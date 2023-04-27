@@ -1,17 +1,18 @@
+pub mod docx;
 pub mod normal;
 pub mod pdf;
 
+use self::{docx::parse_docx, normal::parse_normal, pdf::parse_pdf};
 use crate::CHUNK_TOKENS;
 use anyhow::Result;
 use async_openai::types::EmbeddingInput;
 use std::{fmt::Display, path::PathBuf};
 use tiktoken_rs::cl100k_base;
 
-use self::{normal::parse_normal, pdf::parse_pdf};
-
 #[derive(PartialEq, Clone)]
 pub enum FileType {
     Pdf,
+    Docx,
     Normal,
 }
 
@@ -19,6 +20,7 @@ impl Display for FileType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             FileType::Pdf => write!(f, "PDF"),
+            FileType::Docx => write!(f, "DOCX"),
             FileType::Normal => write!(f, "NORMAL"),
         }
     }
@@ -48,6 +50,8 @@ impl Display for UnlearnedFile {
 pub fn match_file(file_name: String, uploader: String, path: PathBuf) -> UnlearnedFile {
     let file_type = if file_name.ends_with(".pdf") {
         FileType::Pdf
+    } else if file_name.ends_with(".docx") {
+        FileType::Docx
     } else {
         FileType::Normal
     };
@@ -76,6 +80,7 @@ impl From<UnlearnedFile> for Result<UnLearnedKnowledge> {
     fn from(file: UnlearnedFile) -> Result<UnLearnedKnowledge> {
         match file.file_type {
             FileType::Pdf => parse_pdf(file),
+            FileType::Docx => parse_docx(file),
             FileType::Normal => parse_normal(file),
         }
     }
@@ -117,4 +122,23 @@ fn chunk(iter: impl Iterator<Item = String>) -> Vec<UnLearnedChunk> {
     }
 
     chunks
+}
+
+fn insert_newlines(vec: Vec<String>) -> Vec<String> {
+    let mut new_vec = Vec::new();
+    for para in vec {
+        let mut result = String::new();
+        let mut counter = 0;
+
+        for c in para.chars() {
+            result.push(c);
+            counter += 1;
+
+            if counter % 60 == 0 {
+                result.push('\n');
+            }
+        }
+        new_vec.push(result);
+    }
+    new_vec
 }

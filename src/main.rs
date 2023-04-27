@@ -55,10 +55,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // init logger
     let log_level = std::env::var("RUST_LOG").unwrap();
+
     if log_level == "debug" {
         Builder::new()
-            .filter(None, LevelFilter::Info)
             .filter(Some("qa::knowledge"), LevelFilter::Debug)
+            .init();
+    } else if log_level == "info" {
+        Builder::new()
+            .filter(Some("qa::knowledge"), LevelFilter::Info)
             .init();
     } else {
         env_logger::init();
