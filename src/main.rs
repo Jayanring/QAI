@@ -131,8 +131,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .or(file_upload_route)
         .or(get_list_route);
 
-    warp::serve(routes).run(([127, 0, 0, 1], 8080)).await;
     info!("server running at port: 8080");
+    warp::serve(routes).run(([127, 0, 0, 1], 8080)).await;
 
     Ok(())
 }
