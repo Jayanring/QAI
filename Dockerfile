@@ -34,8 +34,8 @@ COPY --from=builder /usr/src/myrustapp/index.html .
 # 复制环境变量配置文件 (.env)
 COPY --from=builder /usr/src/myrustapp/.env .
 
-# 暴露 9000 端口
-EXPOSE 9000
+# 暴露 8080 端口
+EXPOSE 8080
 
 # 运行 Rust 应用程序
 CMD ["./qa"]
