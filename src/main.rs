@@ -58,11 +58,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     if log_level == "debug" {
         Builder::new()
+            .filter(None, LevelFilter::Off)
             .filter(Some("qa::knowledge"), LevelFilter::Debug)
+            .filter(Some("qa"), LevelFilter::Debug)
             .init();
     } else if log_level == "info" {
         Builder::new()
+            .filter(None, LevelFilter::Off)
             .filter(Some("qa::knowledge"), LevelFilter::Info)
+            .filter(Some("qa"), LevelFilter::Info)
             .init();
     } else {
         env_logger::init();
@@ -128,6 +132,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .or(get_list_route);
 
     warp::serve(routes).run(([127, 0, 0, 1], 8080)).await;
+    info!("server running at port: 8080");
 
     Ok(())
 }
