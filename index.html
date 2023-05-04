@@ -13,9 +13,9 @@
             justify-content: center;
             height: 250px;
             margin: 0;
-            background-color: #212121;
+            background-color: #ffffff;
             font-family: 'Courier New', monospace;
-            color: #00ff00;
+            color: #000000;
         }
 
         .section {
@@ -45,8 +45,8 @@
             width: 100%;
             height: 100%;
             resize: none;
-            background-color: #303030;
-            color: #00ff00;
+            background-color: #c6c6c6;
+            color: #000000;
             border: none;
             overflow: auto;
             border-radius: 10px;
@@ -65,8 +65,8 @@
             width: 100%;
             height: 95%;
             resize: none;
-            background-color: #303030;
-            color: #00ff00;
+            background-color: #c6c6c6;
+            color: #000000;
             border: none;
             overflow: auto;
             margin-left: auto;
@@ -85,8 +85,8 @@
             width: 90%;
             height: 100%;
             resize: none;
-            background-color: #303030;
-            color: #00ff00;
+            background-color: #c6c6c6;
+            color: #000000;
             border: none;
             overflow: auto;
             margin-left: auto;
@@ -106,8 +106,8 @@
             height: 100%;
             min-height: 50px;
             resize: none;
-            background-color: #303030;
-            color: #00ff00;
+            background-color: #c6c6c6;
+            color: #000000;
             border: none;
             overflow: auto;
             margin-left: auto;
@@ -125,8 +125,8 @@
             margin-left: auto;
             margin-right: auto;
             border-radius: 10px;
-            background-color: #303030;
-            color: #00ff00;
+            background-color: #c6c6c6;
+            color: #000000;
             padding: 10px;
             position: absolute;
             white-space: pre-wrap;
@@ -139,9 +139,9 @@
         }
 
         button {
-            background-color: #00ff00;
+            background-color: #000000;
             border: none;
-            color: #212121;
+            color: #ffffff;
             padding: 7px 7px;
             font-family: 'Courier New', monospace;
             cursor: pointer;
@@ -149,9 +149,9 @@
         }
 
         .button-submit {
-            background-color: #00ff00;
+            background-color: #000000;
             border: none;
-            color: #212121;
+            color: #ffffff;
             font-family: 'Georgia', serif;
             cursor: pointer;
             width: 10%;
@@ -168,7 +168,7 @@
 
 
         textarea {
-            background-color: #303030;
+            background-color: #c6c6c6;
             border: none;
             color: #88ff00;
             font-size: 15px;
@@ -287,7 +287,8 @@
             }
             queryOutput.scrollTop = queryOutput.scrollHeight;
     
-            socket = new WebSocket(`ws://localhost:8080/ws?query=${encodeURIComponent(queryInput)}`);
+            socket = new WebSocket(`ws://[repleace]:8080/ws?query=${encodeURIComponent(queryInput)}`);
+            // socket = new WebSocket(`ws://localhost:8080/ws?query=${encodeURIComponent(queryInput)}`);
 
             queryOutput.value += `\nAnswer`;
 

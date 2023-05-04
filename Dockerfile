@@ -23,13 +23,10 @@ USER myrustappuser
 WORKDIR /home/myrustappuser
 
 # 从构建阶段复制编译好的可执行文件到运行阶段的镜像
-COPY --from=builder /usr/src/myrustapp/target/release/qa .
+COPY --from=builder /usr/src/myrustapp/target/release/qai .
 
 # 复制依赖的动态库 (.so 文件)
 COPY --from=builder /usr/src/myrustapp/libpdfium.so .
-
-# 复制html文件
-COPY --from=builder /usr/src/myrustapp/index.html .
 
 # 复制环境变量配置文件 (.env)
 COPY --from=builder /usr/src/myrustapp/.env .
@@ -38,4 +35,4 @@ COPY --from=builder /usr/src/myrustapp/.env .
 EXPOSE 8080
 
 # 运行 Rust 应用程序
-CMD ["./qa"]
+CMD ["./qai"]
