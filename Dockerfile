@@ -12,6 +12,7 @@ RUN cargo build --release
 
 # 使用一个轻量级的基础镜像，用于运行已编译的程序
 FROM debian:buster-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 
 # 在新的镜像中创建一个运行用户
 RUN useradd -ms /bin/bash myrustappuser
