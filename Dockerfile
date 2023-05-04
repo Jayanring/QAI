@@ -35,5 +35,8 @@ COPY --from=builder /usr/src/myrustapp/.env .
 # 暴露 8080 端口
 EXPOSE 8080
 
+VOLUME /home/myrustappuser/files
+VOLUME /home/myrustappuser/storage
+
 # 运行 Rust 应用程序
 CMD ["./qai"]
