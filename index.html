@@ -78,7 +78,7 @@
             top: 20%;
             left: 1%;
             width: 25%;
-            height: 10%;
+            height: 15%;
         }
 
         #fileOutput {
@@ -95,10 +95,10 @@
         }
 
         .list-section {
-            top: 32%;
+            top: 40%;
             left: 1%;
             width: 25%;
-            height: 64%;
+            height: 56%;
         }
 
         #listOutput {
@@ -315,7 +315,7 @@
             });
             const data = await response.text();
             const listOutput = document.getElementById('listOutput');
-            listOutput.value = `List: ${data}`;
+            listOutput.value = `知识库列表: ${data}`;
         }
     </script>
 </body>

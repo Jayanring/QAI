@@ -171,7 +171,7 @@ async fn handle_upload(
             let file_path = PathBuf::from("./files").join(file_name.clone());
             if file_path.exists() {
                 info!("get upload request: {} already uploaded", file_name);
-                return Ok(warp::reply::html("File already uploaded"));
+                return Ok(warp::reply::html("文件已存在"));
             }
             // parse file type
             let file = match_file(file_name.clone(), "".to_string(), file_path.clone());
@@ -182,7 +182,7 @@ async fn handle_upload(
             while let Ok(Some(chunk)) = part_stream.try_next().await {
                 if let Err(e) = fs.write_all(chunk.chunk()).await {
                     error!("write {} failed: {}", file_name, e);
-                    return Ok(warp::reply::html("Write file failed"));
+                    return Ok(warp::reply::html("写入文件失败"));
                 }
             }
             info!("get upload request: {} uploaded", file_name);
@@ -190,7 +190,7 @@ async fn handle_upload(
             let _ = file_sender.send(file).await;
         }
     }
-    Ok(warp::reply::html("File uploaded successfully. Indexing..."))
+    Ok(warp::reply::html("文件上传成功，正在建立索引..."))
 }
 
 async fn indexer(mut file_receiver: Receiver<UnlearnedFile>, brain: Arc<Brain>) {
