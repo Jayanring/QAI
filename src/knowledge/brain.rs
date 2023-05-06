@@ -144,11 +144,11 @@ impl Brain {
             .messages([
                 ChatCompletionRequestMessageArgs::default()
                     .role(Role::System)
-                    .content("你是一名客服经理，从已知中提取相关信息，详细且礼貌地回答问题。")
+                    .content("请仅根据我给出的以下信息回答问题，并不要使用您的先验知识。如果无法回答请表达歉意。")
                     .build()?,
                 ChatCompletionRequestMessageArgs::default()
                     .role(Role::User)
-                    .content("已知：".to_string() + &context + "\n" + "问题：" + &query)
+                    .content("信息：".to_string() + &context + "\n" + "问题：" + &query)
                     .build()?,
             ])
             .build()?;
