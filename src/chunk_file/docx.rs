@@ -1,6 +1,6 @@
 use super::{chunk, insert_newlines, UnLearnedKnowledge, UnlearnedFile};
 use anyhow::Result;
-use docx_rust::document::BodyContent;
+use docx_rust::document::{BodyContent, TableCellContent, TableRowContent};
 use docx_rust::DocxFile;
 
 pub fn parse_docx(file: UnlearnedFile) -> Result<UnLearnedKnowledge> {
@@ -16,6 +16,23 @@ pub fn parse_docx(file: UnlearnedFile) -> Result<UnLearnedKnowledge> {
             let s = para.text();
             if !s.is_empty() {
                 paras.push(s);
+            }
+        } else if let BodyContent::Table(table) = body {
+            for row in table.rows {
+                let mut line = String::new();
+                for cell in row.cells {
+                    if let TableRowContent::TableCell(tc) = cell {
+                        for tcc in tc.content {
+                            let TableCellContent::Paragraph(para) = tcc;
+                            let s = para.text();
+                            if !s.is_empty() {
+                                line += &s;
+                                line += "\t";
+                            }
+                        }
+                    }
+                }
+                paras.push(line);
             }
         }
     }
